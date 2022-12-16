@@ -1,4 +1,5 @@
 #include "matrix_coo.hh"
+#include <iostream>
 #include <cuda_runtime.h>
 extern "C" {
 #include "mmio.h"
@@ -42,6 +43,7 @@ void MatrixCOO::read(const std::string & fn) {
   // Store Matrix properties in shared memory
   *m_is_sym_storage = mm_is_symmetric(matcode);
   *nz_storage = nz;
+  std::cout << "Number of nonzero elements: " << nz << std::endl;
 
   // Store Matrix Data in shared memory
   //  NOTE: when reading in doubles, ANSI C requires the use of the "l"  /

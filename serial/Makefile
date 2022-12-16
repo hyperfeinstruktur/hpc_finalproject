@@ -15,4 +15,4 @@ cgsolver_sparse: cg_main_sparse.o $(OBJS)
 	$(LD) -o $@ cg_main_sparse.o $(OBJS) $(LDFLAGS)
 
 clean:
-	rm -f cgsolver *.o *~
+	rm -f cgsolver_sparse cgsolver_dense *.o *~
