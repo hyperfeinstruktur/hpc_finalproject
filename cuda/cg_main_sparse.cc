@@ -1,6 +1,7 @@
 #include "cg.hh"
 #include <chrono>
 #include <iostream>
+#include <cuda_runtime.h>
 
 using clk = std::chrono::high_resolution_clock;
 using second = std::chrono::duration<double>;
@@ -11,15 +12,20 @@ Implementation of a simple CG solver using matrix in the mtx format (Matrix
 market) Any matrix in that format can be used to test the code
 */
 int main(int argc, char ** argv) {
-  if (argc < 2) {
+  if (argc < 3) {
     std::cerr << "Usage: " << argv[0] << " [martix-market-filename]"
-              << std::endl;
+              << " [CUDA block size]" << std::endl;
     return 1;
   }
 
   CGSolverSparse sparse_solver;
   sparse_solver.read_matrix(argv[1]);
   
+  dim3 block_size;
+  block_size.x = std::stoi(argv[2]);
+  dim3 grid_size;
+  grid_size.x = sparse_solver.nz() / block_size.x + (sparse_solver.nz() % block_size.x != 0);
+
   int n = sparse_solver.n();
   int m = sparse_solver.m();
   double h = 1. / n;
@@ -32,7 +38,7 @@ int main(int argc, char ** argv) {
   std::cout << "Call CG sparse on matrix size " << m << " x " << n << ")"
             << std::endl;
   auto t1 = clk::now();
-  sparse_solver.solve(x_s);
+  sparse_solver.solve(x_s,grid_size,block_size);
   second elapsed = clk::now() - t1;
   std::cout << "Time for CG (sparse solver)  = " << elapsed.count() << " [s]\n";
 

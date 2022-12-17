@@ -39,7 +39,7 @@ end
 /*
 Sparse version of the cg solver
 */
-void CGSolverSparse::solve(std::vector<double> & xvect) {
+void CGSolverSparse::solve(std::vector<double> & xvect,const dim3 & grid_size,const dim3 & block_size) {
   // Initialize algorithm variables
   //std::vector<double> r(m_n); // == vector r(k) = b-Ax(k)
   //std::vector<double> p(m_n); // == vector p(k) = r(k) + beta*p(k-1)   (beta is a scalar)
@@ -85,7 +85,7 @@ void CGSolverSparse::solve(std::vector<double> & xvect) {
   int k = 0;
   for (; k < m_n; ++k) {
     // Ap = A * p;
-    m_A.mat_vec_cuda(pptr, Apptr,m_n); // <-- This is where 99% of time is spent according to gprof
+    m_A.mat_vec_cuda(pptr, Apptr,m_n,grid_size,block_size); // <-- This is where 99% of time is spent according to gprof
 
     // alpha = rsold / (p' * Ap);
     auto alpha = rsold / std::max(cblas_ddot(m_n, pptr, 1, Apptr, 1),

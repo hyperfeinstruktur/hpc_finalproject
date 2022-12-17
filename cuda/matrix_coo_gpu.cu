@@ -74,14 +74,14 @@ void MatrixCOO::mat_vec(const double* x, double* y, const size_t & len)
     }
   }
 
-void MatrixCOO::mat_vec_cuda(const double* x, double* y, const size_t & len)
+void MatrixCOO::mat_vec_cuda(const double* x, double* y, const size_t & len ,const dim3 & grid_size,const dim3 & block_size)
  {
     std::fill_n(y, len, 0.);
 
-    dim3 grid_size;
-    dim3 block_size;
-    block_size.x = 128;
-    grid_size.x = *nz_storage / block_size.x + (*nz_storage % block_size.x != 0);
+    //dim3 grid_size;
+    //dim3 block_size;
+    //block_size.x = 128;
+    //grid_size.x = *nz_storage / block_size.x + (*nz_storage % block_size.x != 0);
     static bool first{true};
     if (first) {
         std::cout << "Block size:    " << block_size.x << ":" << block_size.y << "\n"

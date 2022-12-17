@@ -1,6 +1,5 @@
 #include "matrix_coo.hh"
 #include <iostream>
-#include <cuda_runtime.h>
 extern "C" {
 #include "mmio.h"
 }
@@ -40,9 +39,11 @@ void MatrixCOO::read(const std::string & fn) {
   cudaMallocManaged(&m_is_sym_storage,sizeof(bool));
   cudaMallocManaged(&nz_storage,sizeof(size_t));
 
-  // Store Matrix properties in shared memory
+  // Store Matrix properties in unified memory
   *m_is_sym_storage = mm_is_symmetric(matcode);
   *nz_storage = nz;
+  m_nz = nz;
+  m_is_sym = mm_is_symmetric(matcode);
   std::cout << "Number of nonzero elements: " << nz << std::endl;
 
   // Store Matrix Data in shared memory
