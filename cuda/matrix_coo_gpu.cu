@@ -27,6 +27,7 @@ __global__ void compute_element(const double* x,
                                 const size_t* nz)
   {
     int z = blockDim.x*blockIdx.x + threadIdx.x;
+    //int z = blockIdx.x + stride*threadIdx.x;
     if (z < *nz) {
       auto i = irn[z];
       auto j = jcn[z];
@@ -89,7 +90,8 @@ void MatrixCOO::mat_vec_cuda(const double* x, double* y, const size_t & len ,con
         first = false;
     }
 
-    compute_element<<<grid_size,block_size>>>(x,y,irn_storage,jcn_storage,a_storage,m_is_sym_storage,nz_storage);
+    //compute_element<<<grid_size,block_size>>>(x,y,irn_storage,jcn_storage,a_storage,m_is_sym_storage,nz_storage,grid_size.x);
+    compute_element<<<596,50>>>(x,y,irn_storage,jcn_storage,a_storage,m_is_sym_storage,nz_storage);
     cudaDeviceSynchronize();
 
     auto error = cudaGetLastError();

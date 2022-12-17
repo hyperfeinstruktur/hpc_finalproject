@@ -5,6 +5,7 @@
 #include <cmath>
 #include <iostream>
 #include <cuda_runtime.h>
+//#include <cublas_v2.h>
 
 const double NEARZERO = 1.0e-14;
 const bool DEBUG = false;
@@ -46,6 +47,9 @@ void CGSolverSparse::solve(std::vector<double> & xvect,const dim3 & grid_size,co
   //std::vector<double> Ap(m_n); // == matrix A times vector pk
   //std::vector<double> tmp(m_n);
 
+  //cublasHandle_t handle;
+  //cublasCreate(&handle);
+
   double r[m_n];
   double p[m_n];
   double Ap[m_n];
@@ -57,7 +61,7 @@ void CGSolverSparse::solve(std::vector<double> & xvect,const dim3 & grid_size,co
   double* pptr = p;
   double* Apptr = Ap;
   // Allocate device memory for arrays that are used in kernels
-  cudaMallocManaged(&xptr,m_n*sizeof(double));
+  //cudaMallocManaged(&xptr,m_n*sizeof(double));
   cudaMallocManaged(&pptr,m_n*sizeof(double));
   cudaMallocManaged(&Apptr,m_n*sizeof(double));
 
@@ -99,7 +103,6 @@ void CGSolverSparse::solve(std::vector<double> & xvect,const dim3 & grid_size,co
 
     // rsnew = r' * r;
     auto rsnew = cblas_ddot(m_n, r, 1, r, 1);
-
     // if sqrt(rsnew) < 1e-10
     //   break;
     if (std::sqrt(rsnew) < m_tolerance)
@@ -108,6 +111,7 @@ void CGSolverSparse::solve(std::vector<double> & xvect,const dim3 & grid_size,co
     auto beta = rsnew / rsold;
     // p = r + (rsnew / rsold) * p;
     //tmp = r;
+    // TODO: copy on GPU?
     std::copy(r,r+m_n,tmp); 
 
     cblas_daxpy(m_n, beta, pptr, 1, tmp, 1);
