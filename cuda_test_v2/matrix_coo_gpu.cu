@@ -75,24 +75,9 @@ void MatrixCOO::mat_vec(const double* x, double* y, const size_t & len)
     }
   }
 
-void MatrixCOO::mat_vec_cuda(const double* x, double* y, const size_t & len ,const dim3 & grid_size,const dim3 & block_size)
+void MatrixCOO::mat_vec_cuda(const double* x, double* y ,const dim3 & grid_size,const dim3 & block_size)
  {
-    //std::fill_n(y, len, 0.);
-
-    if (false) {std::cout << len << std::endl;}
-    //dim3 grid_size;
-    //dim3 block_size;
-    //block_size.x = 128;
-    //grid_size.x = *nz_storage / block_size.x + (*nz_storage % block_size.x != 0);
-    static bool first{true};
-    if (first) {
-        std::cout << "Block size:    " << block_size.x << ":" << block_size.y << "\n"
-                  << "Grid_size:     " << grid_size.x << ":" << grid_size.y << std::endl;
-        first = false;
-    }
-
-    //compute_element<<<grid_size,block_size>>>(x,y,irn_storage,jcn_storage,a_storage,m_is_sym_storage,nz_storage,grid_size.x);
-    compute_element<<<596,50>>>(x,y,irn_storage,jcn_storage,a_storage,m_is_sym_storage,nz_storage);
+    compute_element<<<grid_size,block_size>>>(x,y,irn_storage,jcn_storage,a_storage,m_is_sym_storage,nz_storage);
     cudaDeviceSynchronize();
     auto error = cudaGetLastError();
     if(error != cudaSuccess) {

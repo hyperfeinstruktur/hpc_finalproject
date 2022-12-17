@@ -14,5 +14,8 @@ cgsolver_sparse: $(OBJS) matrix_coo_gpu.o
 
 matrix_coo_gpu.o: matrix_coo_gpu.cu
 	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+cg.o: cg.cu
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 clean:
 	rm -f cgsolver_sparse *.o *~

@@ -21,7 +21,7 @@ public:
   // Compute y = Ax. Stores the result of Ax in the second argument
   // in standard (dense) einstein notation, y_i = A_ij x_j
   void mat_vec(const double* x, double* y, const size_t & len);
-  void mat_vec_cuda(const double* x, double* y, const size_t & len,const dim3 & grid_size,const dim3 & block_size);
+  void mat_vec_cuda(const double* x, double* y,const dim3 & grid_size,const dim3 & block_size);
   void mat_vec(const std::vector<double> & x, std::vector<double> & y);
 
 private:

@@ -5,11 +5,22 @@
 #include <cmath>
 #include <iostream>
 #include <cuda_runtime.h>
-//#include <cublas_v2.h>
 
 const double NEARZERO = 1.0e-14;
 const bool DEBUG = true;
 
+__global__ void daxpy_cuda(const double* X,const double alpha,double* Y,const int len)
+  {
+    // Store X + alpha*Y in Y
+    int i = blockDim.x*blockIdx.x + threadIdx.x;
+
+    if (i < len)
+    {
+        Y[i] = X[i] + alpha*Y[i];
+    }
+    
+  }
+  
 /*
     cgsolver solves the linear equation A*x = b where A is
     of size m x n
@@ -37,10 +48,19 @@ end
 
 */
 
+
 /*
 Sparse version of the cg solver
 */
 void CGSolverSparse::solve(std::vector<double> & xvect,const dim3 & grid_size,const dim3 & block_size) {
+
+  static bool first{true};
+    if (first) {
+        std::cout << "Block size:    " << block_size.x << ":" << block_size.y << "\n"
+                  << "Grid_size:     " << grid_size.x << ":" << grid_size.y << std::endl;
+        first = false;
+    }
+
   // Initialize algorithm variables
   //std::vector<double> r(m_n); // == vector r(k) = b-Ax(k)
   //std::vector<double> p(m_n); // == vector p(k) = r(k) + beta*p(k-1)   (beta is a scalar)
@@ -56,29 +76,37 @@ void CGSolverSparse::solve(std::vector<double> & xvect,const dim3 & grid_size,co
   double tmp[m_n];
   double x[m_n];
 
-  // Unified device pointers
+  // Device Pointers
   //double* xptr = x;
   double* pptr = p;
   double* Apptr = Ap;
+  double* rptr = r;
   // Allocate device memory for arrays that are used in kernels
   //cudaMallocManaged(&xptr,m_n*sizeof(double));
   cudaMalloc(&pptr,m_n*sizeof(double));
   //cudaMallocManaged(&pptr,m_n*sizeof(double));
   cudaMalloc(&Apptr,m_n*sizeof(double));
+  cudaMalloc(&rptr,m_n*sizeof(double));
 
   std::copy(xvect.begin(),xvect.end(),x);
   //cudaMemcpy(xptr,x,m_n*sizeof(double),cudaMemcpyHostToDevice);
 
+  // TODO
+  // Replace all arrays by device code, use kernels and cublas, copy back to host only at exit
   // r = b - A * x;
   m_A.mat_vec(x, Ap,m_n); // <--- stores Ax in vector Ap.
   std::copy(m_b.begin(),m_b.end(),r); 
+  cudaMemcpy(rptr,r,m_n*sizeof(double),cudaMemcpyHostToDevice);
+
   //r = m_b; // <--- r0 = b - Ax0 in the alg. Ax0 is subtracted below:
   // cblas_daxpy: "Computes a constant times a vector plus a vector (double-precision)."
   // usage= daxpy(N: vector size, alpha: mult. constant, X: vector, stride, Y: vector, stride)
   // result is alpha*X + Y and is stored in Y
   // NOTE: vector.data() returns a pointer to the memory array used internally
   //cblas_daxpy(m_n, -1., Ap.data(), 1, r.data(), 1); // <--- stores r - Ap in r
-  cblas_daxpy(m_n, -1., Ap, 1, r, 1); // <--- stores r - Ap in r
+  //cblas_daxpy(m_n, -1., Ap, 1, r, 1); // <--- stores r - Ap in r
+  daxpy_cuda<<<200,50>>>(Apptr,-1,rptr,m_n);
+  cudaMemcpy(r,rptr,m_n*sizeof(double),cudaMemcpyDeviceToHost);
 
   // p0 = r0;
   //p = r;
@@ -94,7 +122,7 @@ void CGSolverSparse::solve(std::vector<double> & xvect,const dim3 & grid_size,co
     std::fill(Ap,Ap+m_n,0.);
     cudaMemcpy(pptr,p,m_n*sizeof(double),cudaMemcpyHostToDevice);
     cudaMemcpy(Apptr,Ap,m_n*sizeof(double),cudaMemcpyHostToDevice);
-    m_A.mat_vec_cuda(pptr, Apptr,m_n,grid_size,block_size); // <-- This is where 99% of time is spent according to gprof
+    m_A.mat_vec_cuda(pptr, Apptr,grid_size,block_size); // <-- This is where 99% of time is spent according to gprof
     cudaMemcpy(p,pptr,m_n*sizeof(double),cudaMemcpyDeviceToHost);
     cudaMemcpy(Ap,Apptr,m_n*sizeof(double),cudaMemcpyDeviceToHost);
     // alpha = rsold / (p' * Ap);
