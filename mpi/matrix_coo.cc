@@ -3,12 +3,10 @@ extern "C" {
 #include "mmio.h"
 }
 
-void MatrixCOO::mat_vec(const std::vector<double> & x, std::vector<double> & y, const int & prank, const int & N_block) {
-    std::cout << N_block << std::endl << std::endl;
+void MatrixCOO::mat_vec(const std::vector<double> & x, std::vector<double> & y,const int & z_start,const int & z_end) {
     std::fill_n(y.begin(), y.size(), 0.);
 
-    int z_start =
-    for (size_t z = 0; z < irn.size(); ++z) {
+    for (int z(z_start); z < z_end; ++z) {
       auto i = irn[z];
       auto j = jcn[z];
       auto a_ = a[z];

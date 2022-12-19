@@ -24,18 +24,24 @@ int main(int argc, char ** argv) {
   MPI_Comm_rank(MPI_COMM_WORLD, &prank);
   MPI_Comm_size(MPI_COMM_WORLD, &psize);
   
-  CGSolverSparse sparse_solver;
+  CGSolverSparse sparse_solver(prank,psize);
   sparse_solver.read_matrix(argv[1]);
   
   int n = sparse_solver.n();
   int m = sparse_solver.m();
   double h = 1. / n;
 
+  
   sparse_solver.init_source_term(h);
 
   std::vector<double> x_s(n);
   std::fill(x_s.begin(), x_s.end(), 0.);
 
+  if (prank == 0){
+    std::cout << "Call CG sparse on matrix size " << m << " x " << n << ")"
+              << std::endl;
+  }
+  /*
   // p-1 blocks of size blocksize & 1 block of size lastblocksize
   int blocksize = n/ psize;
   int lastblocksize = n - psize*blocksize + blocksize;
@@ -50,11 +56,15 @@ int main(int argc, char ** argv) {
     if (prank < psize -1) N_block = blocksize;
     else N_block = lastblocksize;
   }
-
+  */
+  
   auto t1 = clk::now();
-  sparse_solver.solve(x_s,prank,N_block);
+  sparse_solver.solve(x_s);
   second elapsed = clk::now() - t1;
-  std::cout << "Time for CG (sparse solver)  = " << elapsed.count() << " [s]\n";
+  if (prank == 0)
+  {
+    std::cout << "Time for CG (sparse solver)  = " << elapsed.count() << " [s]\n";
+  }
 
   MPI_Finalize();
   return 0;

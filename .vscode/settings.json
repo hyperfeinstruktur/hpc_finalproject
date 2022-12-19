@@ -76,7 +76,12 @@
         "__nullptr": "cpp",
         "shared_mutex": "cpp",
         "filesystem": "cpp",
-        "__locale": "cpp"
+        "__locale": "cpp",
+        "__hash_table": "cpp",
+        "__split_buffer": "cpp",
+        "__tree": "cpp",
+        "queue": "cpp",
+        "stack": "cpp"
     },
     "C_Cpp.default.includePath": [
         "/opt/cuda/include/"

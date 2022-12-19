@@ -1,4 +1,3 @@
-#include "matrix.hh"
 #include "matrix_coo.hh"
 #include <cblas.h>
 #include <string>
@@ -15,7 +14,7 @@ public:
   void init_source_term(double h);
 
   // Solve Ax=b
-  virtual void solve(std::vector<double> & x) = 0;
+  virtual void solve(std::vector<double> & x,const dim3 & grid_size,const dim3 & block_size) = 0;
 
   // Getter functions for size
   inline int m() const { return m_m; }
@@ -38,13 +37,13 @@ protected:
 
 class CGSolverSparse : public Solver {
 public:
-  CGSolverSparse(const int prank,const int psize);
+  CGSolverSparse() = default;
 
   // Set the matrix A from input file
   virtual void read_matrix(const std::string & filename);
 
   // Solve Ax = b using CG <-- 99% spent here from gprof
-  virtual void solve(std::vector<double> & x);
+  virtual void solve(std::vector<double> & x,const dim3 & grid_size,const dim3 & block_size);
 
   // Get number of nonzero elements when matrix has been read
   inline int nz() const { return m_A.nz(); }
@@ -52,26 +51,6 @@ private:
 
   // The matrix A in Ax = b
   MatrixCOO m_A;
-
-  // MPI Stuff
-  int prank;
-  int psize;
-  int z_start;
-  int z_end;
-};
-
-
-
-// =========== UNUSED =============
-
-class CGSolver : public Solver {
-public:
-  CGSolver() = default;
-  virtual void read_matrix(const std::string & filename);
-  virtual void solve(std::vector<double> & x);
-
-private:
-  Matrix m_A;
 };
 
 #endif /* __CG_HH__ */

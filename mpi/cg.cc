@@ -1,4 +1,5 @@
 #include "cg.hh"
+#include <mpi.h>
 
 #include <algorithm>
 #include <cblas.h>
@@ -6,7 +7,7 @@
 #include <iostream>
 
 const double NEARZERO = 1.0e-14;
-const bool DEBUG = true;
+const bool DEBUG = false;
 
 /*
     cgsolver solves the linear equation A*x = b where A is
@@ -35,17 +36,24 @@ end
 
 */
 
+CGSolverSparse::CGSolverSparse(const int prank,const int psize)
+: prank(prank), psize(psize)
+{}
+
 /*
 Sparse version of the cg solver
 */
-void CGSolverSparse::solve(std::vector<double> & x,const int & prank,const int & N_block) {
+void CGSolverSparse::solve(std::vector<double> & x) {
   // Initialize algorithm variables
   std::vector<double> r(m_n); // == vector r(k) = b-Ax(k)
   std::vector<double> p(m_n); // == vector p(k) = r(k) + beta*p(k-1)   (beta is a scalar)
   std::vector<double> Ap(m_n); // == matrix A times vector pk
+  std::vector<double> Aptmp(m_n); // == matrix A times vector pk
   std::vector<double> tmp(m_n);
   // r = b - A * x;
-  m_A.mat_vec(x, Ap,prank,N_block); // <--- stores Ax in vector Ap. 
+  m_A.mat_vec(x, Ap,z_start,z_end); // <--- stores Ax in vector Ap.
+  MPI_Allreduce(Ap.data(), Aptmp.data(), m_n, MPI_DOUBLE, MPI_SUM,MPI_COMM_WORLD);
+  Ap = Aptmp;
   r = m_b; // <--- r0 = b - Ax0 in the alg. Ax0 is subtracted below:
   // cblas_daxpy: "Computes a constant times a vector plus a vector (double-precision)."
   // usage= daxpy(N: vector size, alpha: mult. constant, X: vector, stride, Y: vector, stride)
@@ -64,8 +72,9 @@ void CGSolverSparse::solve(std::vector<double> & x,const int & prank,const int &
   //for (; k < 10000000; ++k) {
   for (; k < m_n; ++k) {
     // Ap = A * p;
-    m_A.mat_vec(p, Ap,prank,N_block); // <-- This is where 99% of time is spent according to gprof
-
+    m_A.mat_vec(p, Ap,z_start,z_end); // <-- This is where 99% of time is spent according to gprof
+    MPI_Allreduce(Ap.data(), Aptmp.data(), m_n, MPI_DOUBLE, MPI_SUM,MPI_COMM_WORLD);
+    Ap = Aptmp;
     // alpha = rsold / (p' * Ap);
     auto alpha = rsold / std::max(cblas_ddot(m_n, p.data(), 1, Ap.data(), 1),
                                   rsold * NEARZERO);
@@ -99,7 +108,7 @@ void CGSolverSparse::solve(std::vector<double> & x,const int & prank,const int &
   }
 
   if (DEBUG) {
-    m_A.mat_vec(x, r,prank,N_block);
+    m_A.mat_vec(x, r,z_start,z_end);
     cblas_daxpy(m_n, -1., m_b.data(), 1, r.data(), 1);
     auto res = std::sqrt(cblas_ddot(m_n, r.data(), 1, r.data(), 1)) /
                std::sqrt(cblas_ddot(m_n, m_b.data(), 1, m_b.data(), 1));
@@ -114,6 +123,21 @@ void CGSolverSparse::read_matrix(const std::string & filename) {
   m_A.read(filename);
   m_m = m_A.m();
   m_n = m_A.n();
+
+  int N_block = m_A.nz() / psize + (m_A.nz() % psize != 0);
+  int lastblocksize = m_A.nz() - (psize-1)*N_block;
+  z_start = prank*N_block;
+  z_end = (prank+1)*N_block;
+  if (prank == psize) {
+    N_block = lastblocksize;
+    z_end = m_A.nz();
+    }
+  if (prank == 0){
+    std::cout << "Using " << psize - 1 << " block(s) of size " << N_block
+        << " and 1 block of size " << lastblocksize << std::endl;
+
+  }
+
 }
 
 /*
