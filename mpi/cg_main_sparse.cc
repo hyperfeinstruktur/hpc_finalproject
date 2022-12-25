@@ -41,23 +41,6 @@ int main(int argc, char ** argv) {
     std::cout << "Call CG sparse on matrix size " << m << " x " << n << ")"
               << std::endl;
   }
-  /*
-  // p-1 blocks of size blocksize & 1 block of size lastblocksize
-  int blocksize = n/ psize;
-  int lastblocksize = n - psize*blocksize + blocksize;
-  int N_block;
-
-  if (prank == 0){
-    std::cout << "Call CG sparse on matrix size " << m << " x " << n << ")"
-              << std::endl;
-
-    std::cout << "Using " << psize - 1 << " block(s) of size " << blocksize
-              << " and 1 block of size " << lastblocksize << std::endl;
-    if (prank < psize -1) N_block = blocksize;
-    else N_block = lastblocksize;
-  }
-  */
-  
   auto t1 = clk::now();
   sparse_solver.solve(x_s);
   second elapsed = clk::now() - t1;

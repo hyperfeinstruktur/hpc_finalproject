@@ -10,7 +10,6 @@ void MatrixCOO::mat_vec(const std::vector<double> & x, std::vector<double> & y,c
       auto i = irn[z];
       auto j = jcn[z];
       auto a_ = a[z];
-
       y[i] += a_ * x[j];
       if (m_is_sym and (i != j)) {
         y[j] += a_ * x[i];
