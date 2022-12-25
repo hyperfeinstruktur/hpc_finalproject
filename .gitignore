@@ -1,5 +1,8 @@
 misc/
 
+# Binary Files
+mpi/cgsolver_sparse
+
 # Prerequisites
 *.d
 

@@ -7,7 +7,7 @@
 #include <iostream>
 
 const double NEARZERO = 1.0e-14;
-const bool DEBUG = false;
+const bool DEBUG = true;
 
 /*
     cgsolver solves the linear equation A*x = b where A is
@@ -50,60 +50,69 @@ void CGSolverSparse::solve(std::vector<double> & x) {
   std::vector<double> Ap(m_n); // == matrix A times vector pk
   std::vector<double> Aptmp(m_n); // == matrix A times vector pk
   std::vector<double> tmp(m_n);
+  double rsold;
+
   // r = b - A * x;
   m_A.mat_vec(x, Ap,z_start,z_end); // <--- stores Ax in vector Ap.
-  MPI_Allreduce(Ap.data(), Aptmp.data(), m_n, MPI_DOUBLE, MPI_SUM,MPI_COMM_WORLD);
-  Ap = Aptmp;
-  r = m_b; // <--- r0 = b - Ax0 in the alg. Ax0 is subtracted below:
-  // cblas_daxpy: "Computes a constant times a vector plus a vector (double-precision)."
-  // usage= daxpy(N: vector size, alpha: mult. constant, X: vector, stride, Y: vector, stride)
-  // result is alpha*X + Y and is stored in Y
-  // NOTE: vector.data() returns a pointer to the memory array used internally
-  cblas_daxpy(m_n, -1., Ap.data(), 1, r.data(), 1); // <--- stores r - Ap in r
+  MPI_Reduce(Ap.data(), Aptmp.data(), m_n, MPI_DOUBLE, MPI_SUM,0,MPI_COMM_WORLD);
+  //TODO: Reduce to root process and let that one handle the rest of the operations alone
+  if (prank == 0)
+  {
+    Ap = Aptmp;
+    r = m_b; // <--- r0 = b - Ax0 in the alg. Ax0 is subtracted below:
+    // cblas_daxpy: "Computes a constant times a vector plus a vector (double-precision)."
+    // usage= daxpy(N: vector size, alpha: mult. constant, X: vector, stride, Y: vector, stride)
+    // result is alpha*X + Y and is stored in Y
+    // NOTE: vector.data() returns a pointer to the memory array used internally
+    cblas_daxpy(m_n, -1., Ap.data(), 1, r.data(), 1); // <--- stores r - Ap in r
 
-  // p0 = r0;
-  p = r;
+    // p0 = r0;
+    p = r;
 
-  // rsold = r' * r;
-  auto rsold = cblas_ddot(m_n, r.data(), 1, r.data(), 1);
-
-  // for i = 1:length(b)
-  int k = 0;
+    // rsold = r' * r;
+    rsold = cblas_ddot(m_n, r.data(), 1, r.data(), 1);
+  }
+    // for i = 1:length(b)
+    int k = 0;
   //for (; k < 10000000; ++k) {
   for (; k < m_n; ++k) {
     // Ap = A * p;
+    MPI_Bcast(p.data(),m_n,MPI_DOUBLE,0,MPI_COMM_WORLD);
     m_A.mat_vec(p, Ap,z_start,z_end); // <-- This is where 99% of time is spent according to gprof
-    MPI_Allreduce(Ap.data(), Aptmp.data(), m_n, MPI_DOUBLE, MPI_SUM,MPI_COMM_WORLD);
-    Ap = Aptmp;
-    // alpha = rsold / (p' * Ap);
-    auto alpha = rsold / std::max(cblas_ddot(m_n, p.data(), 1, Ap.data(), 1),
-                                  rsold * NEARZERO);
+    MPI_Reduce(Ap.data(), Aptmp.data(), m_n, MPI_DOUBLE, MPI_SUM,0,MPI_COMM_WORLD);
+    if (prank == 0)
+    {
+      Ap = Aptmp;
+      // alpha = rsold / (p' * Ap);
+      auto alpha = rsold / std::max(cblas_ddot(m_n, p.data(), 1, Ap.data(), 1),
+                                    rsold * NEARZERO);
 
-    // x = x + alpha * p;
-    cblas_daxpy(m_n, alpha, p.data(), 1, x.data(), 1);
+      // x = x + alpha * p;
+      cblas_daxpy(m_n, alpha, p.data(), 1, x.data(), 1);
 
-    // r = r - alpha * Ap;
-    cblas_daxpy(m_n, -alpha, Ap.data(), 1, r.data(), 1);
+      // r = r - alpha * Ap;
+      cblas_daxpy(m_n, -alpha, Ap.data(), 1, r.data(), 1);
 
-    // rsnew = r' * r;
-    auto rsnew = cblas_ddot(m_n, r.data(), 1, r.data(), 1);
+      // rsnew = r' * r;
+      auto rsnew = cblas_ddot(m_n, r.data(), 1, r.data(), 1);
 
-    // if sqrt(rsnew) < 1e-10
-    //   break;
-    if (std::sqrt(rsnew) < m_tolerance)
-      break; // Convergence test
+      // if sqrt(rsnew) < 1e-10
+      //   break;
+      if (std::sqrt(rsnew) < m_tolerance)
+        break; // Convergence test
 
-    auto beta = rsnew / rsold;
-    // p = r + (rsnew / rsold) * p;
-    tmp = r;
-    cblas_daxpy(m_n, beta, p.data(), 1, tmp.data(), 1);
-    p = tmp;
+      auto beta = rsnew / rsold;
+      // p = r + (rsnew / rsold) * p;
+      tmp = r;
+      cblas_daxpy(m_n, beta, p.data(), 1, tmp.data(), 1);
+      p = tmp;
 
-    // rsold = rsnew;
-    rsold = rsnew;
-    if (DEBUG) {
-      std::cout << "\t[STEP " << k << "] residual = " << std::scientific
-                << std::sqrt(rsold) << "\r" << std::flush;
+      // rsold = rsnew;
+      rsold = rsnew;
+      if (DEBUG) {
+        std::cout << "\t[STEP " << k << "] residual = " << std::scientific
+                  << std::sqrt(rsold) << "\r" << std::flush;
+      }
     }
   }
 
