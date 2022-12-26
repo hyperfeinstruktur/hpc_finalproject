@@ -59,21 +59,6 @@ void MatrixCOO::mat_vec(const std::vector<double> & x, std::vector<double> & y)
     }
   }
 
-void MatrixCOO::mat_vec(const double* x, double* y, const size_t & len)
- {
-    std::fill_n(y, len, 0.);
-    for (int z = 0; z < m_nz; ++z) {
-      auto i = irn_storage[z];
-      auto j = jcn_storage[z];
-      auto a_ = a_storage[z];
-
-      y[i] += a_ * x[j];
-      if (m_is_sym and (i != j)) {
-        y[j] += a_ * x[i];
-      }
-    }
-  }
-
 void MatrixCOO::mat_vec_cuda(const double* x, double* y ,const dim3 & grid_size,const dim3 & block_size)
  {
     compute_element<<<grid_size,block_size>>>(x,y,irn_storage,jcn_storage,a_storage,m_is_sym,m_nz);

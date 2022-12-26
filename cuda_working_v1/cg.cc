@@ -5,6 +5,7 @@
 #include <cmath>
 #include <iostream>
 #include <cuda_runtime.h>
+#include <cuda_profiler_api.h>
 //#include <cublas_v2.h>
 
 const double NEARZERO = 1.0e-14;
@@ -49,7 +50,7 @@ void CGSolverSparse::solve(std::vector<double> & xvect,const dim3 & grid_size,co
 
   //cublasHandle_t handle;
   //cublasCreate(&handle);
-
+  cudaProfilerStart();
   double r[m_n];
   double p[m_n];
   double Ap[m_n];
@@ -125,6 +126,7 @@ void CGSolverSparse::solve(std::vector<double> & xvect,const dim3 & grid_size,co
                 << std::sqrt(rsold) << "\r" << std::flush;
     }
   }
+  cudaProfilerStop();
   if (DEBUG) {
     m_A.mat_vec(x, r,m_n);
     cblas_daxpy(m_n, -1., m_b.data(), 1, r, 1);

@@ -78,19 +78,13 @@ void CGSolverSparse::solve(std::vector<double> & xvect,const dim3 & grid_size,co
   std::vector<double> tmp(m_n);
 
   // Device Pointers
-  //double* dev_r;
-  //double* dev_x;
   double* dev_p;
   double* dev_Ap;
-  //double* dev_tmp;
 
   auto bitsize = m_n*sizeof(double);
   // Allocate device memory
-  //cudaMalloc(&dev_r,bitsize);
-  //cudaMalloc(&dev_x,bitsize);
   cudaMalloc(&dev_p,bitsize);
   cudaMalloc(&dev_Ap,bitsize);
-  //cudaMalloc(&dev_tmp,bitsize);
 
   //std::copy(xvect.begin(),xvect.end(),dev_x);
   //cudaMemcpy(dev_x,xvect.data(),bitsize,cudaMemcpyHostToDevice);
@@ -141,7 +135,7 @@ void CGSolverSparse::solve(std::vector<double> & xvect,const dim3 & grid_size,co
     cudaMemcpy(Ap.data(),dev_Ap,bitsize,cudaMemcpyDeviceToHost);
     auto alpha = rsold / std::max(cblas_ddot(m_n, p.data(), 1, Ap.data(), 1),
                                   rsold * NEARZERO);
-
+    
     // x = x + alpha * p;
     cblas_daxpy(m_n, alpha, p.data(), 1, xvect.data(), 1);
 

@@ -35,30 +35,18 @@ void MatrixCOO::read(const std::string & fn) {
   irn.resize(nz);
   jcn.resize(nz);
   a.resize(nz);
+
   // Store matrix properties
   m_nz = nz;
   m_is_sym = mm_is_symmetric(matcode);
+  std::cout << "Number of nonzero elements: " << nz << std::endl;
 
   // Allocate Device Memory
   cudaMalloc(&irn_storage,nz*sizeof(int));
   cudaMalloc(&jcn_storage,nz*sizeof(int));
   cudaMalloc(&a_storage,nz*sizeof(double));
-  //cudaMalloc(&m_is_sym_storage,sizeof(bool));
-  //cudaMalloc(&nz_storage,sizeof(size_t));
 
-  // Store Matrix properties in unified memory
-  //cudaMemcpy(m_is_sym_storage,&m_is_sym,sizeof(bool),cudaMemcpyHostToDevice);
-  //cudaMemcpy(nz_storage,&m_nz,sizeof(size_t),cudaMemcpyHostToDevice);
-  std::cout << "Number of nonzero elements: " << nz << std::endl;
-
-  // Temporary storage
-  //int irn[nz];
-  //int jcn[nz];
-  std::cout << irn[0] << std::endl;
-  //double a[nz];
-  
-
-  // Store Matrix Data in shared memory
+  // Store Matrix Data
   //  NOTE: when reading in doubles, ANSI C requires the use of the "l"  /
   //   specifier as in "%lg", "%lf", "%le", otherwise errors will occur /
   //  (ANSI C X3.159-1989, Sec. 4.9.6.2, p. 136 lines 13-15)            /
@@ -74,34 +62,11 @@ void MatrixCOO::read(const std::string & fn) {
     jcn[i] = J;
     a[i] = a_;
   }
+
+  // Copy Data to GPU
   cudaMemcpy(irn_storage,irn.data(),nz*sizeof(int),cudaMemcpyHostToDevice);
   cudaMemcpy(jcn_storage,jcn.data(),nz*sizeof(int),cudaMemcpyHostToDevice);
   cudaMemcpy(a_storage,a.data(),nz*sizeof(double),cudaMemcpyHostToDevice);
-
-  /*
-  // reserve memory for matrices //
-  irn.resize(nz);
-  jcn.resize(nz);
-  a.resize(nz);
-
-  //  NOTE: when reading in doubles, ANSI C requires the use of the "l"  /
-  //   specifier as in "%lg", "%lf", "%le", otherwise errors will occur /
-  //  (ANSI C X3.159-1989, Sec. 4.9.6.2, p. 136 lines 13-15)            /
-  m_is_sym = mm_is_symmetric(matcode);
-  for (int i = 0; i < nz; i++) {
-    int I, J;
-    double a_;
-
-    fscanf(f, "%d %d %lg\n", &I, &J, &a_);
-    I--; // adjust from 1-based to 0-based /
-    J--;
-
-    irn[i] = I;
-    jcn[i] = J;
-    a[i] = a_;
-  }
-  */
-  
 
   if (f != stdin) {
     fclose(f);

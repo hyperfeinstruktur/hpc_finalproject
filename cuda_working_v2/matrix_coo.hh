@@ -20,14 +20,19 @@ public:
 
   // Compute y = Ax. Stores the result of Ax in the second argument
   // in standard (dense) einstein notation, y_i = A_ij x_j
-  void mat_vec(const double* x, double* y, const size_t & len);
-  void mat_vec_cuda(const double* x, double* y,const dim3 & grid_size,const dim3 & block_size);
+
+  // This is the default serial CPU version, for reference and for the first call to mat_vec
   void mat_vec(const std::vector<double> & x, std::vector<double> & y);
+
+  // This is the GPU version
+  void mat_vec_cuda(const double* x, double* y,const dim3 & grid_size,const dim3 & block_size);
+  
+private:
+  // Host Data
   std::vector<int> irn;
   std::vector<int> jcn;
   std::vector<double> a;
-  
-private:
+
   int m_m{0};
   int m_n{0};
   bool m_is_sym{false};
@@ -35,11 +40,9 @@ private:
   
 
   // Pointers for Device memory
-  size_t* nz_storage;
   int* irn_storage;
   int* jcn_storage;
   double* a_storage;
-  bool* m_is_sym_storage;
 };
 
 #endif // __MATRIX_COO_H_
