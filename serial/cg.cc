@@ -6,7 +6,7 @@
 #include <iostream>
 
 const double NEARZERO = 1.0e-14;
-const bool DEBUG = true;
+const bool DEBUG = false;
 
 /*
     cgsolver solves the linear equation A*x = b where A is

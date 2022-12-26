@@ -60,7 +60,8 @@ void MatrixCOO::mat_vec(const std::vector<double> & x, std::vector<double> & y)
   }
 
 void MatrixCOO::mat_vec_cuda(const double* x, double* y ,const dim3 & grid_size,const dim3 & block_size)
- {
+ {  
+    cudaMemset(y,0,m_n*sizeof(double));
     compute_element<<<grid_size,block_size>>>(x,y,irn_storage,jcn_storage,a_storage,m_is_sym,m_nz);
     cudaDeviceSynchronize();
     auto error = cudaGetLastError();

@@ -1,7 +1,8 @@
 CXX=g++
 LD=${CXX}
 #CXXFLAGS+=-Wall -Wextra -Werror -pedantic -std=c++11 -I${OPENBLAS_ROOT}/include -pg -g -O1
-CXXFLAGS+=-Wall -Wextra -Werror -pedantic -std=c++11 -pg -g -O0
+CXXFLAGS+=-Wall -Wextra -Werror -pedantic -std=c++11 -O0
+#CXXFLAGS+=-Wall -Wextra -Werror -pedantic -std=c++11 -pg -g -O0
 #LDFLAGS+=-lm $(CXXFLAGS) -L${OPENBLAS_ROOT}/lib -lopenblas
 LDFLAGS+=-lm $(CXXFLAGS) -L${OPENBLAS_ROOT}/lib -lcblas
 
