@@ -21,16 +21,7 @@ __global__ void daxpy_cuda(const double* X,const double alpha,double* Y,const in
     }
     
   }
-  
-__global__ void fillzero_cuda(double* X, const int len)
-{
-    int i = blockDim.x*blockIdx.x + threadIdx.x;
 
-    if (i < len)
-    {
-        X[i] = 0.0;
-    }
-}
 /*
     cgsolver solves the linear equation A*x = b where A is
     of size m x n
@@ -81,15 +72,17 @@ void CGSolverSparse::solve(std::vector<double> & xvect,const dim3 & grid_size,co
   double* dev_p;
   double* dev_Ap;
 
-  auto bitsize = m_n*sizeof(double);
   // Allocate device memory
+  auto bitsize = m_n*sizeof(double);
   cudaMalloc(&dev_p,bitsize);
   cudaMalloc(&dev_Ap,bitsize);
 
-  // #### The part before the loop is all on host to avoid having to allocate more memory #### //
-
   // r = b - A * x;
-  m_A.mat_vec(xvect, Ap); // <--- stores Ax in vector Ap.
+  //m_A.mat_vec(xvect, Ap); // <--- stores Ax in vector Ap.
+  cudaMemcpy(dev_p,xvect.data(),bitsize,cudaMemcpyHostToDevice);
+  m_A.mat_vec_cuda(dev_p, dev_Ap,grid_size,block_size); // <-- This is where 99% of time is spent according to gprof
+  cudaMemcpy(Ap.data(),dev_Ap,bitsize,cudaMemcpyDeviceToHost);
+
   r = m_b;
 
   //r = m_b; // <--- r0 = b - Ax0 in the alg. Ax0 is subtracted below:
@@ -102,16 +95,15 @@ void CGSolverSparse::solve(std::vector<double> & xvect,const dim3 & grid_size,co
 
   p = r;
 
-
   // rsold = r' * r;
   auto rsold = cblas_ddot(m_n, r.data(), 1, r.data(), 1);
 
   // for i = 1:length(b)
   int k = 0;
   for (; k < m_n; ++k) {
-    // Ap = A * p;
+    // Ap = A * p: copy p to gpu, compute Ap in kernel, copy result back to host
     cudaMemcpy(dev_p,p.data(),bitsize,cudaMemcpyHostToDevice);
-    m_A.mat_vec_cuda(dev_p, dev_Ap,grid_size,block_size); // <-- This is where 99% of time is spent according to gprof
+    m_A.mat_vec_cuda(dev_p, dev_Ap,grid_size,block_size);
     cudaMemcpy(Ap.data(),dev_Ap,bitsize,cudaMemcpyDeviceToHost);
     
     // alpha = rsold / (p' * Ap);
@@ -135,6 +127,7 @@ void CGSolverSparse::solve(std::vector<double> & xvect,const dim3 & grid_size,co
     // p = r + (rsnew / rsold) * p;
     tmp = r;
     cblas_daxpy(m_n, beta, p.data(), 1, tmp.data(), 1);
+
     p = tmp;
 
     // rsold = rsnew;
