@@ -1,9 +1,8 @@
 CXX=mpicxx
 LD=${CXX}
 #CXXFLAGS+=-Wall -Wextra -Werror -pedantic -std=c++11 -I${OPENBLAS_ROOT}/include -O1
-CXXFLAGS+=-Wall -Wextra -Werror -pedantic -std=c++11 -O0
-#LDFLAGS+=-lm $(CXXFLAGS) -L${OPENBLAS_ROOT}/lib -lopenblas
-LDFLAGS+=-lm $(CXXFLAGS) -L${OPENBLAS_ROOT}/lib -lcblas
+CXXFLAGS+=-Wall -Wextra -Werror -pedantic -std=c++11 -I${OPENBLAS_ROOT}/include
+LDFLAGS+=-lm $(CXXFLAGS) -L${OPENBLAS_ROOT}/lib -lopenblas
 
 OBJS=cg.o matrix.o matrix_coo.o mmio.o
 
