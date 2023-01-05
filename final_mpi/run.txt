@@ -1,0 +1,3 @@
+Commands to run
+
+srun --account=math-454 --reservation=Course-math-454-final -n [# Threads] cgsolver_sparse lap2D_5pt_n100.mtx
