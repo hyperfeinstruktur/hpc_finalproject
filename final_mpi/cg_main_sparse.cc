@@ -24,6 +24,19 @@ int main(int argc, char ** argv) {
   MPI_Comm_rank(MPI_COMM_WORLD, &prank);
   MPI_Comm_size(MPI_COMM_WORLD, &psize);
   
+  /*
+  For the weak scaling part, the same matrix is solved psize times
+  to have a constant work per thread. This behaviour is triggered
+  simply by adding any additional argument to the program
+  */
+  int nb_solves = 1;
+  if (argc >= 3)
+  {
+    nb_solves = psize;
+    if (prank == 0)
+      std::cout << "Weak Scaling:  Solving CG " << nb_solves << " times with " << psize << " threads." << std::endl;
+  }
+
   CGSolverSparse sparse_solver(prank,psize);
   sparse_solver.read_matrix(argv[1]);
   
@@ -42,7 +55,10 @@ int main(int argc, char ** argv) {
               << std::endl;
   }
   auto t1 = clk::now();
-  sparse_solver.solve(x_s);
+  for (int t = 0 ; t < nb_solves ; t++)
+  {
+    sparse_solver.solve(x_s);
+  }
   second elapsed = clk::now() - t1;
   if (prank == 0)
   {
